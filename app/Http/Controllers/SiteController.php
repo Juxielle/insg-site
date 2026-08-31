@@ -10,6 +10,7 @@ use App\Models\Page;
 use App\Models\Program;
 use App\Models\SiteStatistic;
 use App\Models\Testimonial;
+use App\Models\Contest;
 use Illuminate\Contracts\View\View;
 
 class SiteController extends Controller
@@ -24,6 +25,7 @@ class SiteController extends Controller
             'events' => Event::where('starts_at', '>=', now()->startOfDay())->orderBy('starts_at')->limit(3)->get(),
             'testimonials' => Testimonial::where('featured', true)->get(),
             'partners' => Partner::where('active', true)->get(),
+            'publishedContests' => Contest::where('status', 'results_published')->latest('published_at')->limit(3)->get(),
         ]);
     }
 

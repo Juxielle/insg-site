@@ -198,6 +198,36 @@
 .cms-shell .page-link { border-color: var(--cms-border); border-radius: 9px !important; color: var(--cms-blue); }
 .cms-shell .active > .page-link { border-color: var(--cms-blue); background: var(--cms-blue); }
 .cms-sidebar-overlay { display: none; }
+.cms-submission-overview { display: flex; align-items: center; gap: 22px; padding: 22px 24px; border: 1px solid #d3e1ee; border-radius: 20px; background: linear-gradient(120deg, #fff, #f0f7fd); box-shadow: 0 12px 34px rgba(24,52,82,.075); }
+.cms-submission-overview > div:first-child { display: flex; min-width: 245px; align-items: center; gap: 14px; }
+.cms-submission-metrics { display: flex; flex: 1; justify-content: center; gap: 8px; }
+.cms-submission-metrics span { min-width: 78px; padding: 8px 12px; border-radius: 11px; color: var(--cms-muted); background: #fff; font-size: .7rem; text-align: center; box-shadow: 0 4px 14px rgba(24,52,82,.06); }
+.cms-submission-metrics strong { display: block; color: var(--cms-navy); font-size: 1.15rem; }
+.cms-submission-metrics .pending strong { color: #a26700; }
+.cms-count-badge { padding: 9px 12px; border-radius: 10px; font-size: .75rem; }
+.cms-count-badge.pending, .cms-status.pending { color: #855800; background: #fff2c7; }
+.cms-count-badge.approved, .cms-status.approved { color: #17663b; background: #dff5e8; }
+.cms-count-badge.rejected, .cms-status.rejected { color: #a02937; background: #fde6e9; }
+.cms-status { padding: 7px 10px; border-radius: 8px; font-size: .72rem; }
+.cms-section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--cms-navy); font-weight: 800; }
+.cms-section-title i { color: var(--cms-sky); }
+.cms-data-label { display: block; margin-bottom: 3px; color: var(--cms-muted); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.cms-data-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+.cms-data-grid > div { padding: 14px 16px; border-bottom: 1px solid #e7edf4; }
+.cms-data-grid dt { margin-bottom: 5px; color: var(--cms-muted); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; }
+.cms-data-grid dd { margin: 0; white-space: pre-line; }
+.cms-documents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cms-document { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--cms-border); border-radius: 12px; color: var(--cms-ink); background: #f8fbfe; text-decoration: none; }
+.cms-document:hover { border-color: var(--cms-sky); color: var(--cms-blue); background: #fff; }
+.cms-document > i { font-size: 1.5rem; color: var(--cms-sky); }
+.cms-document strong, .cms-document small { display: block; }
+.cms-document small { margin-top: 2px; color: var(--cms-muted); font-size: .7rem; }
+.cms-review-panel { position: sticky; top: 106px; }
+.cms-review-history { display: flex; gap: 9px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--cms-border); color: var(--cms-muted); font-size: .76rem; }
+.cms-mini-stat { display: grid; min-height: 132px; place-items: center; align-content: center; gap: 3px; padding: 16px; text-align: center; }
+.cms-mini-stat i { color: var(--cms-sky); font-size: 1.25rem; }
+.cms-mini-stat strong { color: var(--cms-navy); font-size: 1.55rem; line-height: 1; }
+.cms-mini-stat span { color: var(--cms-muted); font-size: .72rem; }
 
 @media (max-width: 991.98px) {
   .cms-sidebar { transform: translateX(-105%); transition: transform .25s ease; }
@@ -208,6 +238,9 @@
   .cms-menu-toggle { display: grid; place-items: center; }
   .cms-topbar { min-height: 72px; padding: 12px 20px; }
   .cms-content { padding: 28px 20px 40px; }
+  .cms-submission-overview { align-items: stretch; flex-direction: column; }
+  .cms-submission-metrics { justify-content: flex-start; flex-wrap: wrap; }
+  .cms-review-panel { position: static; }
 }
 
 @media (max-width: 575.98px) {
@@ -217,6 +250,7 @@
   .cms-content { padding-inline: 14px; }
   .cms-card { border-radius: 16px; }
   .cms-content h1 { font-size: 1.65rem; }
+  .cms-data-grid, .cms-documents { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

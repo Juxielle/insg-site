@@ -20,7 +20,9 @@ class DatabaseSeeder extends Seeder
             PageSectionSeeder::class,
             SiteSettingSeeder::class,
             SiteMediaSeeder::class,
+            ContestSeeder::class,
             AuthSeeder::class,
+            PublishedContestSeeder::class,
         ]);
     }
 }

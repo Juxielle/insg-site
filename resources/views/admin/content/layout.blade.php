@@ -21,6 +21,8 @@
     <div class="cms-nav-label">Pilotage éditorial</div>
     <nav class="nav flex-column">
       <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}" @if(request()->routeIs('admin.content.dashboard')) aria-current="page" @endif><i class="bi bi-grid"></i>Vue d’ensemble</a>
+      <a href="{{ route('admin.contests.index') }}" class="nav-link {{ request()->routeIs('admin.contests.*') ? 'active' : '' }}" @if(request()->routeIs('admin.contests.*')) aria-current="page" @endif><i class="bi bi-trophy"></i>Concours</a>
+      <a href="{{ route('admin.content.submissions.index') }}" class="nav-link {{ request()->routeIs('admin.content.submissions.*') ? 'active' : '' }}" @if(request()->routeIs('admin.content.submissions.*')) aria-current="page" @endif><i class="bi bi-inbox"></i>Demandes reçues</a>
       @php
         $navigationGroups = [
           ['label' => 'Structure du site', 'icon' => 'bi-window-stack', 'items' => ['pages', 'page-sections']],

@@ -13,6 +13,7 @@ use App\Models\SiteStatistic;
 use App\Models\SiteSetting;
 use App\Models\SiteMedia;
 use App\Models\Testimonial;
+use App\Models\Submission;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,8 @@ class ContentAdminController extends Controller
             'counts' => collect($this->resources())->mapWithKeys(
                 fn (array $config, string $key) => [$key => $config['model']::count()]
             ),
+            'submissionCounts' => Submission::query()->selectRaw('type, count(*) as total')->groupBy('type')->pluck('total', 'type'),
+            'pendingSubmissions' => Submission::where('status', 'pending')->count(),
         ]);
     }
 
@@ -172,7 +175,7 @@ class ContentAdminController extends Controller
         return $this->resources()[$resource];
     }
 
-    private function resources(): array
+    public function resources(): array
     {
         $text = fn (string $label, bool $required = true) => ['label' => $label, 'type' => 'text', 'rules' => [$required ? 'required' : 'nullable', 'string', 'max:255']];
         $textarea = fn (string $label, bool $required = true) => ['label' => $label, 'type' => 'textarea', 'rules' => [$required ? 'required' : 'nullable', 'string']];

@@ -50,6 +50,7 @@
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="pages/formations.html"><i class="bi bi-mortarboard me-2"></i>Formations</a></li>
                 <li><a class="dropdown-item" href="pages/admissions.html"><i class="bi bi-pencil-square me-2"></i>Admissions</a></li>
+                <li><a class="dropdown-item" href="{{ route('contests.index') }}"><i class="bi bi-trophy me-2"></i>Concours</a></li>
                 <li><a class="dropdown-item" href="pages/vie-etudiante.html"><i class="bi bi-people me-2"></i>Vie Étudiante</a></li>
                 <li><a class="dropdown-item" href="pages/recherche.html"><i class="bi bi-search me-2"></i>Recherche</a></li>
                 <li><a class="dropdown-item" href="pages/incubateur.html"><i class="bi bi-rocket-takeoff me-2"></i>Incubateurs</a></li>
@@ -60,6 +61,7 @@
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="pages/actualites.html"><i class="bi bi-newspaper me-2"></i>Actualités</a></li>
                 <li><a class="dropdown-item" href="pages/annonces-concours.html"><i class="bi bi-megaphone me-2"></i>Annonces de concours</a></li>
+                <li><a class="dropdown-item" href="{{ route('contests.results') }}"><i class="bi bi-award me-2"></i>Résultats des concours</a></li>
                 <li><a class="dropdown-item" href="pages/inscription-master.html"><i class="bi bi-file-earmark-person me-2"></i>Inscription en Master</a></li>
                 <li><a class="dropdown-item" href="pages/bibliotheque.html"><i class="bi bi-book me-2"></i>Bibliothèque</a></li>
                 <li><a class="dropdown-item" href="pages/entreprises.html"><i class="bi bi-briefcase me-2"></i>Partenaires</a></li>
@@ -105,6 +107,9 @@
       </div>
       <a href="#chiffres-cles" class="hero-scroll-cue" aria-label="Défiler vers le bas"><i class="bi bi-chevron-down"></i></a>
     </section>
+    @if(($publishedContests ?? collect())->isNotEmpty())
+      <section class="contest-results-banner"><div class="container"><div class="contest-results-panel"><div><span class="eyebrow"><i class="bi bi-award"></i> Publication officielle</span><h2>Résultats des concours disponibles</h2><p>Consultez de manière confidentielle les résultats publiés par l’INSG Gabon.</p></div><div class="d-flex flex-wrap gap-2">@foreach($publishedContests as $publishedContest)<a class="btn btn-insg-primary" href="{{ route('contests.results', ['contest' => $publishedContest->id]) }}">{{ $publishedContest->title }}<i class="bi bi-arrow-right ms-2"></i></a>@endforeach</div></div></div></section>
+    @endif
     @include('partials.page-sections')
 
   </main>
