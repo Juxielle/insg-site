@@ -31,6 +31,16 @@ class ContestModuleTest extends TestCase
         $this->assertSame('registration_open', $contest->fresh()->status);
     }
 
+    public function test_admin_can_open_the_contest_management_page(): void
+    {
+        $contest = Contest::where('reference', 'CONC-2026-002')->firstOrFail();
+        $this->actingAs($this->admin())->get(route('admin.contests.show', $contest))
+            ->assertOk()
+            ->assertSee($contest->title)
+            ->assertSee('Gérer les candidatures')
+            ->assertSee('Gérer les résultats');
+    }
+
     public function test_public_application_is_pending_then_validation_assigns_identifiers(): void
     {
         $contest = Contest::where('status', 'registration_open')->firstOrFail();
