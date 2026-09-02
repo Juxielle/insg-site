@@ -36,16 +36,20 @@ class ContestPublicController extends Controller
     public function confirmation(string $code): View
     {
         $application = ContestApplication::with('contest')->where('verification_code', $code)->firstOrFail();
-        return view('contests.confirmation', compact('application'));
+        return view('contests.confirmation', ['application' => $application, 'resultsCode' => date('Y')]);
     }
 
     public function results(): View { return view('contests.results', ['contests' => Contest::where('status', 'results_published')->latest('published_at')->get(), 'result' => null]); }
 
     public function search(Request $request): View
     {
-        $data = $request->validate(['contest_id' => ['required', 'integer'], 'registration_number' => ['required', 'string', 'max:50'], 'verification_code' => ['required', 'string', 'size:32']]);
+        $data = $request->validate([
+            'contest_id' => ['required', 'integer'],
+            'registration_number' => ['required', 'string', 'max:50'],
+            'verification_code' => ['required', 'digits:4', Rule::in([date('Y')])],
+        ]);
         $contest = Contest::where('status', 'results_published')->findOrFail($data['contest_id']);
-        $application = $contest->applications()->with(['candidate', 'result'])->where('verification_code', $data['verification_code'])->whereHas('candidate', fn ($q) => $q->where('registration_number', $data['registration_number']))->first();
+        $application = $contest->applications()->with(['candidate', 'result'])->whereHas('candidate', fn ($q) => $q->where('registration_number', $data['registration_number']))->first();
         return view('contests.results', ['contests' => Contest::where('status', 'results_published')->latest('published_at')->get(), 'result' => $application]);
     }
 }

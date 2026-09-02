@@ -68,14 +68,16 @@ class ContentSeeder extends Seeder
         }
 
         $partners = [
-            'BGFI Bank' => '/assets/images/partners/bgfi.png',
-            'UGB' => '/assets/images/partners/ugb.png',
-            'CNSS' => '/assets/images/partners/cnss.png',
-            'TotalEnergies' => '/assets/images/partners/total.jpeg',
-            'Airtel Gabon' => '/assets/images/partners/airtel.png',
+            'Banque et finance' => ['BGFI', 'FINAM', 'BICIG', 'UGB', 'La Régionale d’Épargne et de Crédit du Gabon', 'Olsen Courtage', 'Luxo Finance'],
+            'Audit et conseil' => ['KPMG', 'Deloitte', 'Ernst & Young', 'IMPROM', 'AC Consulting', 'K.T.A.', 'Cabinet Ramses', 'Salmane International Trade', 'Cabinet Fidicia', 'Metodik Audit & Conseils', '2AD Consulting'],
+            'Industrie et services' => ['SOGAFRIC / SODIM TP / GESPARC', 'Bernabé Gabon', 'EDG SA', 'CAISTAB', 'SEEG', 'PERENCO', 'LABOREX', 'Vocal Centre'],
+            'Transport et logistique' => ['SETRAG', 'BM-Transit', 'DHL', 'ASECNA', 'OCT Owendo', 'Gabon Port Management', 'AVS International', 'Soma Trans International'],
+            'Institutions publiques' => ['Conseil Gabonais des Chargeurs', 'Ministère de la Santé', 'DGCPT', 'Ministère des Comptes publics'],
         ];
-        foreach ($partners as $name => $logoUrl) {
-            Partner::updateOrCreate(['name' => $name], ['category' => 'Entreprise', 'logo_url' => $logoUrl, 'active' => true]);
+        foreach ($partners as $category => $names) {
+            foreach ($names as $name) {
+                Partner::updateOrCreate(['name' => $name], ['category' => $category, 'active' => true]);
+            }
         }
 
         foreach ([

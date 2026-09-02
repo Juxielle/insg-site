@@ -24,7 +24,7 @@ class SiteController extends Controller
             'articles' => Article::whereNotNull('published_at')->latest('published_at')->limit(3)->get(),
             'events' => Event::where('starts_at', '>=', now()->startOfDay())->orderBy('starts_at')->limit(3)->get(),
             'testimonials' => Testimonial::where('featured', true)->get(),
-            'partners' => Partner::where('active', true)->get(),
+            'partners' => Partner::where('active', true)->orderBy('id')->limit(6)->get(),
             'publishedContests' => Contest::where('status', 'results_published')->latest('published_at')->limit(3)->get(),
         ]);
     }

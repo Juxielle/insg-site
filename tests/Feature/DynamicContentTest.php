@@ -22,7 +22,7 @@ class DynamicContentTest extends TestCase
     {
         $this->assertDatabaseCount('programs', 8);
         $this->assertDatabaseCount('articles', 6);
-        $this->assertDatabaseCount('partners', 5);
+        $this->assertDatabaseCount('partners', 38);
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseHas('users', ['email' => 'admin@insg.ga', 'role' => 'admin']);
     }
@@ -30,6 +30,7 @@ class DynamicContentTest extends TestCase
     public function test_public_pages_render_database_content(): void
     {
         $this->get('/')->assertOk()->assertSee(Program::first()->name)->assertSee(Article::first()->title);
+        $this->assertCount(6, $this->get('/')->viewData('partners'));
         $this->get('/pages/formations.html')->assertOk()->assertSee('Informatique de Gestion');
         $this->get('/pages/actualites.html')->assertOk()->assertSee(Article::latest('published_at')->first()->title);
     }

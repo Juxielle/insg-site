@@ -64,7 +64,7 @@
                 <li><a class="dropdown-item" href="{{ route('contests.results') }}"><i class="bi bi-award me-2"></i>Résultats des concours</a></li>
                 <li><a class="dropdown-item" href="pages/inscription-master.html"><i class="bi bi-file-earmark-person me-2"></i>Inscription en Master</a></li>
                 <li><a class="dropdown-item" href="pages/bibliotheque.html"><i class="bi bi-book me-2"></i>Bibliothèque</a></li>
-                <li><a class="dropdown-item" href="pages/entreprises.html"><i class="bi bi-briefcase me-2"></i>Partenaires</a></li>
+                <li><a class="dropdown-item" href="{{ route('pages.entreprises') }}"><i class="bi bi-briefcase me-2"></i>Partenaires</a></li>
               </ul>
             </li>
             <li class="nav-item"><a class="nav-link" href="pages/contact.html">Contact</a></li>

@@ -27,7 +27,13 @@
   </div></nav></header>
   <main id="main-content">
     <section class="page-hero"><div class="container"><nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Accueil</a></li><li class="breadcrumb-item active">{{ $page->name }}</li></ol></nav><h1>{{ $page->hero_title }}</h1>@if($page->hero_text)<p>{{ $page->hero_text }}</p>@endif</div></section>
-    @include('partials.page-sections')
+    @if($page->slug === 'formations')
+      @include('partials.formations-content')
+    @elseif($page->slug === 'entreprises')
+      @include('partials.partners-content')
+    @else
+      @include('partials.page-sections')
+    @endif
   </main>
   <footer class="footer-insg"><div class="container"><div class="row g-4"><div class="col-lg-5"><div class="footer-brand"><span class="brand-badge"><img src="{{ $siteMedia->get('site_logo', '/assets/images/insg-logo.jpeg') }}" alt="Logo INSG Gabon"></span><span>{{ $siteSettings->get('institution_short_name', 'INSG') }}</span></div><p>{{ $siteSettings->get('footer_description', '') }}</p></div><div class="col-6 col-lg-3"><h5>Navigation</h5><ul class="list-unstyled footer-links"><li><a href="{{ route('pages.about') }}">À propos</a></li><li><a href="{{ route('pages.formations') }}">Formations</a></li><li><a href="{{ route('pages.admissions') }}">Admissions</a></li><li><a href="{{ route('pages.contact') }}">Contact</a></li></ul></div><div class="col-6 col-lg-4"><h5>Ressources</h5><ul class="list-unstyled footer-links"><li><a href="{{ route('pages.actualites') }}">Actualités</a></li><li><a href="{{ route('pages.annonces-concours') }}">Annonces de concours</a></li><li><a href="{{ route('pages.bibliotheque') }}">Bibliothèque</a></li><li><a href="{{ route('login') }}">Administration</a></li></ul></div></div><div class="footer-bottom"><span>&copy; {{ date('Y') }} {{ $siteSettings->get('copyright', '') }}</span></div></div></footer>
   <button class="back-to-top" aria-label="Retour en haut"><i class="bi bi-arrow-up"></i></button><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="{{ asset('assets/js/app.js') }}"></script>

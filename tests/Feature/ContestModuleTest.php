@@ -84,8 +84,11 @@ class ContestModuleTest extends TestCase
         $this->get(route('home'))->assertOk()->assertSee('Résultats des concours disponibles');
 
         $first->refresh()->load('candidate');
-        $this->post(route('contests.results.search'), ['contest_id' => $contest->id, 'registration_number' => $first->candidate->registration_number, 'verification_code' => $first->verification_code])
+        $this->post(route('contests.results.search'), ['contest_id' => $contest->id, 'registration_number' => $first->candidate->registration_number, 'verification_code' => date('Y')])
             ->assertOk()->assertSee('15,75')->assertSee('ADMIS')->assertDontSee($first->candidate->email);
+
+        $this->post(route('contests.results.search'), ['contest_id' => $contest->id, 'registration_number' => $first->candidate->registration_number, 'verification_code' => (string) (date('Y') - 1)])
+            ->assertSessionHasErrors('verification_code');
 
         $service->saveResults($contest->fresh(), [$first->id => 8], $admin);
         $this->assertNull($contest->fresh()->published_at);

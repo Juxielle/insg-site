@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Submission extends Model
 {
-    protected $fillable = ['type', 'name', 'email', 'phone', 'data', 'documents', 'status', 'admin_note', 'reviewed_by', 'reviewed_at'];
+    protected $fillable = ['type', 'tracking_number', 'name', 'email', 'phone', 'data', 'documents', 'status', 'admin_note', 'reviewed_by', 'reviewed_at'];
 
     protected function casts(): array
     {

@@ -6,6 +6,7 @@ use App\Models\Submission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\View\View;
 
 class SubmissionController extends Controller
 {
@@ -92,7 +93,7 @@ class SubmissionController extends Controller
         $files = collect($request->allFiles())->flatten()->filter(fn ($file) => $file instanceof UploadedFile);
         $documents = $this->storeFiles($files->all(), 'masters');
 
-        Submission::create([
+        $submission = Submission::create([
             'type' => 'master',
             'name' => "{$validated['prenom']} {$validated['nom']}",
             'email' => $validated['email'],
@@ -104,7 +105,35 @@ class SubmissionController extends Controller
             'documents' => $documents,
         ]);
 
-        return back()->with('success', 'master');
+        $submission->update([
+            'tracking_number' => sprintf('MASTER-%s-%06d', date('Y'), $submission->id),
+        ]);
+
+        return back()->with([
+            'success' => 'master',
+            'tracking_number' => $submission->tracking_number,
+        ]);
+    }
+
+    public function masterTracking(): View
+    {
+        return view('master.tracking', ['submission' => null]);
+    }
+
+    public function trackMaster(Request $request): View
+    {
+        $validated = $request->validate([
+            'tracking_number' => ['required', 'string', 'max:30'],
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $submission = Submission::where('type', 'master')
+            ->where('tracking_number', strtoupper(trim($validated['tracking_number'])))
+            ->where('email', $validated['email'])
+            ->first();
+
+        return view('master.tracking', compact('submission'))
+            ->with('searched', true);
     }
 
     private function storeFiles(array $files, string $directory): array

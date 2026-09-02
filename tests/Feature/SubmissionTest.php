@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Submission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -50,5 +51,28 @@ class SubmissionTest extends TestCase
     {
         $this->post('/contact', ['email' => 'incorrect'])
             ->assertSessionHasErrors(['nom', 'email', 'sujet', 'message']);
+    }
+
+    public function test_master_candidate_can_track_their_application(): void
+    {
+        $submission = Submission::create([
+            'type' => 'master',
+            'tracking_number' => 'MASTER-'.date('Y').'-000001',
+            'name' => 'Aline Test',
+            'email' => 'aline@example.com',
+            'data' => ['niveau' => 'Master 1', 'specialite' => 'Finance'],
+            'status' => 'pending',
+        ]);
+
+        $this->get(route('master.tracking'))->assertOk()->assertSee('Suivre ma candidature en Master');
+        $this->post(route('master.track'), [
+            'tracking_number' => strtolower($submission->tracking_number),
+            'email' => $submission->email,
+        ])->assertOk()->assertSee($submission->tracking_number)->assertSee('En cours d’examen');
+
+        $this->post(route('master.track'), [
+            'tracking_number' => $submission->tracking_number,
+            'email' => 'autre@example.com',
+        ])->assertOk()->assertSee('Aucun dossier ne correspond');
     }
 }

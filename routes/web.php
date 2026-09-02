@@ -87,3 +87,5 @@ Route::middleware('auth')->group(function () {
 Route::post('/contact', [SubmissionController::class, 'contact'])->name('contact.store');
 Route::post('/admissions', [SubmissionController::class, 'admission'])->name('admissions.store');
 Route::post('/inscription-master', [SubmissionController::class, 'master'])->name('master.store');
+Route::get('/inscription-master/suivi', [SubmissionController::class, 'masterTracking'])->name('master.tracking');
+Route::post('/inscription-master/suivi', [SubmissionController::class, 'trackMaster'])->middleware('throttle:20,1')->name('master.track');
