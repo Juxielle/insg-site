@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Contest;
 use App\Models\ContestApplication;
+use App\Models\ContestSubject;
+use App\Models\ContestTrack;
 use App\Services\ContestService;
+use App\Services\ContestExcelImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -16,7 +19,7 @@ use Illuminate\Support\Str;
 
 class ContestAdminController extends Controller
 {
-    public function __construct(private ContestService $service) {}
+    public function __construct(private ContestService $service, private ContestExcelImportService $excelImporter) {}
 
     public function index(Request $request): View
     {
@@ -32,8 +35,15 @@ class ContestAdminController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->admin($request);
+        $request->validate(['results_file' => ['nullable', 'file', 'mimes:xlsx', 'max:10240']]);
         $contest = $this->service->createContest($this->contestData($request), $request->user());
-        return redirect()->route('admin.contests.show', $contest)->with('backoffice_success', 'Concours créé avec succès.');
+        $message = 'Concours créé avec ses filières et matières par défaut.';
+        if ($request->hasFile('results_file')) {
+            $report = $this->excelImporter->import($contest, $request->file('results_file'), $request->user());
+            $message .= " {$report['imported']} candidat(s) importé(s).";
+            if ($report['errors']) $request->session()->flash('import_errors', $report['errors']);
+        }
+        return redirect()->route('admin.contests.show', $contest)->with('backoffice_success', $message);
     }
 
     public function edit(Request $request, Contest $contest): View
@@ -62,7 +72,39 @@ class ContestAdminController extends Controller
             'applications as results_count' => fn ($q) => $q->whereHas('result'),
             'applications as admitted_count' => fn ($q) => $q->whereHas('result', fn ($r) => $r->where('decision', 'admitted')),
         ]);
+        $contest->load('tracks.subjects');
         return view('admin.contests.show', $this->base(compact('contest')));
+    }
+
+    public function storeTrack(Request $request, Contest $contest): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate(['name' => ['required', 'string', 'max:150', Rule::unique('contest_tracks')->where('contest_id', $contest->id)]]);
+        $track = $contest->tracks()->create($data + ['sort_order' => $contest->tracks()->max('sort_order') + 1]);
+        foreach (['Français', 'Mathématiques', 'Anglais', 'Oral'] as $index => $name) $track->subjects()->create(['name' => $name, 'max_score' => 20, 'sort_order' => $index + 1]);
+        return back()->with('backoffice_success', 'Filière ajoutée avec les matières par défaut.');
+    }
+
+    public function destroyTrack(Request $request, Contest $contest, ContestTrack $track): RedirectResponse
+    {
+        $this->admin($request); abort_unless($track->contest_id === $contest->id, 404);
+        if ($track->applications()->exists()) return back()->withErrors(['track' => 'Cette filière contient déjà des candidats et ne peut pas être supprimée.']);
+        $track->delete(); return back()->with('backoffice_success', 'Filière supprimée.');
+    }
+
+    public function storeSubject(Request $request, Contest $contest, ContestTrack $track): RedirectResponse
+    {
+        $this->admin($request); abort_unless($track->contest_id === $contest->id, 404);
+        $data = $request->validate(['name' => ['required', 'string', 'max:120', Rule::unique('contest_subjects')->where('contest_track_id', $track->id)], 'max_score' => ['required', 'numeric', 'gt:0', 'max:1000']]);
+        $track->subjects()->create($data + ['sort_order' => $track->subjects()->max('sort_order') + 1]);
+        return back()->with('backoffice_success', 'Matière ajoutée.');
+    }
+
+    public function updateSubject(Request $request, Contest $contest, ContestSubject $subject): RedirectResponse
+    {
+        $this->admin($request); abort_unless($subject->track?->contest_id === $contest->id, 404);
+        $data = $request->validate(['name' => ['required', 'string', 'max:120'], 'max_score' => ['required', 'numeric', 'gt:0', 'max:1000']]);
+        $subject->update($data); return back()->with('backoffice_success', 'Matière mise à jour.');
     }
 
     public function transition(Request $request, Contest $contest): RedirectResponse
@@ -76,7 +118,7 @@ class ContestAdminController extends Controller
     public function applications(Request $request, Contest $contest): View
     {
         $this->admin($request);
-        $query = $contest->applications()->with(['candidate', 'result'])->latest('submitted_at');
+        $query = $contest->applications()->with(['candidate', 'track', 'result'])->latest('submitted_at');
         if ($request->filled('q')) $query->whereHas('candidate', fn ($q) => $q->where('last_name', 'like', '%'.$request->q.'%')->orWhere('first_names', 'like', '%'.$request->q.'%')->orWhere('registration_number', 'like', '%'.$request->q.'%'));
         if ($request->filled('status')) $query->where('status', $request->status);
         return view('admin.contests.applications', $this->base(['contest' => $contest, 'applications' => $query->paginate(20)->withQueryString()]));
@@ -85,13 +127,14 @@ class ContestAdminController extends Controller
     public function application(Request $request, ContestApplication $application): View
     {
         $this->admin($request);
-        return view('admin.contests.application', $this->base(['application' => $application->load(['contest', 'candidate', 'reviewer', 'result'])]));
+        return view('admin.contests.application', $this->base(['application' => $application->load(['contest', 'track', 'candidate', 'reviewer', 'result'])]));
     }
 
     public function createApplication(Request $request, Contest $contest): View
     {
         $this->admin($request);
         abort_unless($contest->isRegistrationOpen(), 422, 'Les inscriptions ne sont pas ouvertes.');
+        $contest->load('tracks');
         return view('admin.contests.application-form', $this->base(compact('contest')));
     }
 
@@ -99,12 +142,14 @@ class ContestAdminController extends Controller
     {
         $this->admin($request);
         $candidate = $request->validate([
+            'contest_track_id' => ['required', Rule::exists('contest_tracks', 'id')->where('contest_id', $contest->id)],
             'last_name' => ['required','string','max:100'], 'first_names' => ['required','string','max:150'], 'gender' => ['nullable',Rule::in(['F','M'])],
             'birth_date' => ['required','date','before:today'], 'birth_place' => ['nullable','string','max:150'], 'nationality' => ['required','string','max:100'],
             'phone' => ['required','string','max:40'], 'email' => ['required','email','max:255'], 'address' => ['nullable','string','max:255'], 'city' => ['nullable','string','max:100'], 'province' => ['nullable','string','max:100'],
             'study_level' => ['required','string','max:100'], 'previous_school' => ['nullable','string','max:255'], 'diploma' => ['required','string','max:150'], 'graduation_year' => ['nullable','integer','between:1990,'.(date('Y')+1)], 'field' => ['nullable','string','max:150'], 'specialty' => ['nullable','string','max:150'],
         ]);
-        $application = $this->service->submitApplication($contest, $candidate, [], 'admin', $request->user());
+        $trackId = (int) Arr::pull($candidate, 'contest_track_id');
+        $application = $this->service->submitApplication($contest, $candidate, [], 'admin', $request->user(), $trackId);
         return redirect()->route('admin.contests.application', $application)->with('backoffice_success', 'Candidat inscrit et validé avec succès.');
     }
 
@@ -127,7 +172,7 @@ class ContestAdminController extends Controller
     public function results(Request $request, Contest $contest): View
     {
         $this->admin($request);
-        $query = $contest->applications()->where('status', 'validated')->with(['candidate', 'result']);
+        $query = $contest->applications()->where('status', 'validated')->with(['candidate', 'track.subjects', 'scores', 'result']);
         if ($request->filled('q')) $query->whereHas('candidate', fn ($q) => $q->where('last_name', 'like', '%'.$request->q.'%')->orWhere('registration_number', 'like', '%'.$request->q.'%'));
         return view('admin.contests.results', $this->base(['contest' => $contest, 'applications' => $query->paginate(50)->withQueryString()]));
     }
@@ -135,9 +180,9 @@ class ContestAdminController extends Controller
     public function saveResults(Request $request, Contest $contest): RedirectResponse
     {
         $this->admin($request);
-        $data = $request->validate(['averages' => ['required', 'array'], 'averages.*' => ['nullable', 'numeric', 'between:0,20']]);
-        $this->service->saveResults($contest, $data['averages'], $request->user());
-        return back()->with('backoffice_success', 'Résultats enregistrés et classement recalculé.');
+        $data = $request->validate(['scores' => ['required', 'array'], 'scores.*' => ['array']]);
+        $this->service->saveScores($contest, $data['scores'], $request->user());
+        return back()->with('backoffice_success', 'Notes enregistrées, moyennes et classement recalculés.');
     }
 
     public function validateResults(Request $request, Contest $contest): RedirectResponse
@@ -161,10 +206,10 @@ class ContestAdminController extends Controller
     public function export(Contest $contest): StreamedResponse
     {
         abort_unless(request()->user()?->role === 'admin', 403);
-        $rows = $contest->applications()->where('status', 'validated')->with(['candidate', 'result'])->get();
+        $rows = $contest->applications()->where('status', 'validated')->with(['candidate', 'track', 'result'])->get();
         return response()->streamDownload(function () use ($rows): void {
-            $out = fopen('php://output', 'w'); fputcsv($out, ['Rang', 'Matricule', 'Numéro candidat', 'Nom', 'Prénoms', 'Moyenne', 'Mention', 'Décision'], ';');
-            foreach ($rows as $row) fputcsv($out, [$row->result?->rank, $row->candidate->registration_number, $row->candidate_number, $row->candidate->last_name, $row->candidate->first_names, $row->result?->average, $row->result?->mention, $row->result?->decision], ';');
+            $out = fopen('php://output', 'w'); fputcsv($out, ['Rang', 'Filière', 'Matricule', 'Numéro candidat', 'Nom', 'Prénoms', 'Moyenne', 'Mention', 'Décision'], ';');
+            foreach ($rows as $row) fputcsv($out, [$row->result?->rank, $row->track?->name, $row->candidate->registration_number, $row->candidate_number, $row->candidate->last_name, $row->candidate->first_names, $row->result?->average, $row->result?->mention, $row->result?->decision], ';');
             fclose($out);
         }, 'resultats-'.$contest->reference.'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }

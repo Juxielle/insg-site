@@ -6,6 +6,7 @@ use App\Models\Candidate;
 use App\Models\Contest;
 use App\Models\ContestApplication;
 use App\Models\ContestResult;
+use App\Models\ContestScore;
 use App\Models\User;
 use App\Services\ContestService;
 use Illuminate\Database\Seeder;
@@ -24,7 +25,7 @@ class PublishedContestSeeder extends Seeder
                 'session' => 'Juin 2026',
                 'type' => 'Concours d’entrée en Licence',
                 'registration_starts_at' => '2026-03-02 08:00:00',
-                'registration_ends_at' => '2026-05-15 18:00:00',
+                'registration_ends_at' => '2026-09-20 23:59:00',
                 'exam_date' => '2026-06-06',
                 'exam_time' => '08:00',
                 'location' => 'Campus INSG, Libreville',
@@ -37,16 +38,26 @@ class PublishedContestSeeder extends Seeder
                 'closed_at' => '2026-05-15 18:00:00',
             ]);
 
+            $tracks = collect();
+            foreach (['BTS', 'Licence fondamentale', 'Licence professionnelle'] as $trackIndex => $trackName) {
+                $track = $contest->tracks()->firstOrCreate(['name' => $trackName], ['sort_order' => $trackIndex + 1]);
+                foreach (['Français', 'Mathématiques', 'Anglais', 'Oral'] as $subjectIndex => $subjectName) {
+                    $track->subjects()->firstOrCreate(['name' => $subjectName], ['max_score' => 20, 'sort_order' => $subjectIndex + 1]);
+                }
+                $tracks->put($trackName, $track->load('subjects'));
+            }
+
             $candidates = [
-                ['0001', 'OBIANG', 'Grâce Mireille', 'F', '2005-02-14', 'Libreville', 'grace.obiang@example.test', '15.75'],
-                ['0002', 'MBA', 'Jean-Paul', 'M', '2004-11-03', 'Oyem', 'jean.mba@example.test', '18.50'],
-                ['0003', 'NDONG', 'Alice', 'F', '2005-07-21', 'Port-Gentil', 'alice.ndong@example.test', '12.75'],
-                ['0004', 'MOUNDOUNGA', 'Eric', 'M', '2004-09-12', 'Franceville', 'eric.moundounga@example.test', '8.50'],
-                ['0005', 'MBOUMBA', 'Sarah', 'F', '2005-04-08', 'Lambaréné', 'sarah.mboumba@example.test', '16.00'],
+                ['0001', 'OBIANG', 'Grâce Mireille', 'F', '2005-02-14', 'Libreville', 'grace.obiang@example.test', 'Licence fondamentale', [16, 15, 14, 18]],
+                ['0002', 'MBA', 'Jean-Paul', 'M', '2004-11-03', 'Oyem', 'jean.mba@example.test', 'BTS', [19, 18, 17, 20]],
+                ['0003', 'NDONG', 'Alice', 'F', '2005-07-21', 'Port-Gentil', 'alice.ndong@example.test', 'Licence professionnelle', [13, 12, 11, 15]],
+                ['0004', 'MOUNDOUNGA', 'Eric', 'M', '2004-09-12', 'Franceville', 'eric.moundounga@example.test', 'BTS', [9, 8, 7, 10]],
+                ['0005', 'MBOUMBA', 'Sarah', 'F', '2005-04-08', 'Lambaréné', 'sarah.mboumba@example.test', 'Licence fondamentale', [17, 16, 15, 16]],
             ];
 
             $service = app(ContestService::class);
-            foreach ($candidates as $index => [$number, $lastName, $firstNames, $gender, $birthDate, $birthPlace, $email, $average]) {
+            foreach ($candidates as $index => [$number, $lastName, $firstNames, $gender, $birthDate, $birthPlace, $email, $trackName, $scores]) {
+                $track = $tracks[$trackName];
                 $candidate = Candidate::firstOrNew(['email' => $email]);
                 $candidate->fill([
                     'registration_number' => 'INSG-2026-'.$number,
@@ -58,23 +69,28 @@ class PublishedContestSeeder extends Seeder
                 ])->save();
                 $application = ContestApplication::updateOrCreate(
                     ['contest_id' => $contest->id, 'candidate_id' => $candidate->id],
-                    ['candidate_number' => 'CONC-2026-002-'.sprintf('%04d', $index + 1), 'status' => 'validated', 'source' => 'public',
+                    ['contest_track_id' => $track->id, 'candidate_number' => 'CONC-2026-002-'.sprintf('%04d', $index + 1), 'status' => 'validated', 'source' => 'public',
                      'verification_code' => substr(hash('sha256', 'insg-demo-'.$number), 0, 32), 'submitted_at' => '2026-04-10 10:00:00',
                      'reviewed_at' => '2026-05-20 09:00:00', 'reviewed_by' => $admin?->id]
                 );
-                ContestResult::updateOrCreate(['contest_application_id' => $application->id], [
-                    'average' => $average, 'mention' => $service->mention((float) $average),
-                    'decision' => $service->decision((float) $average),
-                ]);
+                foreach ($track->subjects as $subjectIndex => $subject) {
+                    ContestScore::updateOrCreate(
+                        ['contest_application_id' => $application->id, 'contest_subject_id' => $subject->id],
+                        ['score' => $scores[$subjectIndex]]
+                    );
+                }
+                $service->calculateApplicationResult($application->fresh(['track.subjects', 'scores']));
             }
 
-            $results = ContestResult::whereHas('application', fn ($query) => $query->where('contest_id', $contest->id))
-                ->orderByDesc('average')->orderBy('id')->get();
-            $previous = null; $rank = 0;
-            foreach ($results as $index => $result) {
-                if ($previous === null || (float) $result->average !== $previous) $rank = $index + 1;
-                $result->update(['rank' => $rank]);
-                $previous = (float) $result->average;
+            foreach ($tracks as $track) {
+                $results = ContestResult::whereHas('application', fn ($query) => $query->where('contest_id', $contest->id)->where('contest_track_id', $track->id))
+                    ->orderByDesc('average')->orderBy('id')->get();
+                $previous = null; $rank = 0;
+                foreach ($results as $index => $result) {
+                    if ($previous === null || (float) $result->average !== $previous) $rank = $index + 1;
+                    $result->update(['rank' => $rank]);
+                    $previous = (float) $result->average;
+                }
             }
         });
     }

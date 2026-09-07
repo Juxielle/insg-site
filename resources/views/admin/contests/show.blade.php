@@ -70,4 +70,20 @@
     @endif
   </div></div>
 </div>
+
+@if(!in_array($contest->status, ['results_published', 'archived']))
+<section class="cms-card p-4 mt-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h2 class="h5 cms-section-title mb-1"><i class="bi bi-diagram-3"></i>Filières et matières</h2><p class="text-muted mb-0">Configurez les épreuves et leur barème maximal pour chaque filière.</p></div><form method="POST" action="{{ route('admin.contests.tracks.store', $contest) }}" class="d-flex gap-2">@csrf<input class="form-control" name="name" placeholder="Nouvelle filière" required><button class="btn btn-primary text-nowrap"><i class="bi bi-plus-lg me-1"></i>Ajouter</button></form></div>
+  @if(session('import_errors'))<div class="alert alert-warning"><strong>Import Excel partiel :</strong><ul class="mb-0">@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+  <div class="accordion" id="tracksAccordion">
+    @foreach($contest->tracks as $track)
+      <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button {{ $loop->first ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#track-{{ $track->id }}"><strong>{{ $track->name }}</strong><span class="badge text-bg-light ms-2">{{ $track->subjects->count() }} matières</span></button></h3><div id="track-{{ $track->id }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}" data-bs-parent="#tracksAccordion"><div class="accordion-body">
+        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Matière</th><th style="width:180px">Score maximal</th><th style="width:100px"></th></tr></thead><tbody>@foreach($track->subjects as $subject)<tr><form method="POST" action="{{ route('admin.contests.subjects.update', [$contest, $subject]) }}">@csrf @method('PUT')<td><input class="form-control" name="name" value="{{ $subject->name }}" required></td><td><div class="input-group"><input class="form-control" type="number" min="0.01" max="1000" step=".01" name="max_score" value="{{ $subject->max_score }}" required><span class="input-group-text">points</span></div></td><td><button class="btn btn-outline-primary btn-sm">Enregistrer</button></td></form></tr>@endforeach</tbody></table></div>
+        <form method="POST" action="{{ route('admin.contests.subjects.store', [$contest, $track]) }}" class="row g-2 align-items-end">@csrf<div class="col-md-6"><label class="form-label">Nouvelle matière</label><input class="form-control" name="name" required></div><div class="col-md-3"><label class="form-label">Score maximal</label><input class="form-control" type="number" min="0.01" max="1000" step=".01" name="max_score" value="20" required></div><div class="col-md-3"><button class="btn btn-outline-primary w-100">Ajouter la matière</button></div></form>
+        @if(!$track->applications()->exists())<form method="POST" action="{{ route('admin.contests.tracks.destroy', [$contest, $track]) }}" class="mt-3 text-end" onsubmit="return confirm('Supprimer cette filière et ses matières ?')">@csrf @method('DELETE')<button class="btn btn-link text-danger btn-sm">Supprimer la filière</button></form>@endif
+      </div></div></div>
+    @endforeach
+  </div>
+</section>
+@endif
 @endsection

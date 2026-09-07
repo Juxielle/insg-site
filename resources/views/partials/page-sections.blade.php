@@ -3,7 +3,11 @@
     $background = $section->theme === 'gray' ? ' bg-light-gray' : ($section->theme === 'navy' ? ' bg-navy' : '');
     $textClass = $section->theme === 'navy' ? ' text-white' : '';
   @endphp
-  @if (in_array($section->type, ['programs', 'articles', 'announcements', 'events', 'partners', 'testimonials', 'statistics', 'contact_form', 'admission_form', 'master_form']))
+  @if ($section->key === 'governance')
+    @include('partials.governance-chart', ['section' => $section, 'background' => $background])
+  @elseif ($section->key === 'home-programs')
+    @include('partials.home-formations', ['section' => $section, 'background' => $background])
+  @elseif (in_array($section->type, ['programs', 'articles', 'announcements', 'events', 'partners', 'testimonials', 'statistics', 'contact_form', 'admission_form', 'master_form']))
     @include('partials.page-dynamic-section', ['section' => $section, 'background' => $background])
   @elseif ($section->type === 'cta')
     <section class="section{{ $background }}" data-cms-section="{{ $section->key }}">

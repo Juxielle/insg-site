@@ -7,6 +7,8 @@ use App\Models\Contest;
 use App\Models\ContestApplication;
 use App\Models\ContestAudit;
 use App\Models\ContestResult;
+use App\Models\ContestScore;
+use App\Models\ContestTrack;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +32,12 @@ class ContestService
             $year = (int) substr($data['academic_year'], 0, 4);
             $sequence = Contest::where('reference', 'like', "CONC-{$year}-%")->lockForUpdate()->count() + 1;
             $contest = Contest::create($data + ['reference' => sprintf('CONC-%d-%03d', $year, $sequence), 'status' => 'draft']);
+            foreach (['BTS', 'Licence fondamentale', 'Licence professionnelle'] as $trackOrder => $trackName) {
+                $track = $contest->tracks()->create(['name' => $trackName, 'sort_order' => $trackOrder + 1]);
+                foreach (['Français', 'Mathématiques', 'Anglais', 'Oral'] as $subjectOrder => $subjectName) {
+                    $track->subjects()->create(['name' => $subjectName, 'max_score' => 20, 'sort_order' => $subjectOrder + 1]);
+                }
+            }
             $this->audit($user, 'contest.created', $contest);
             return $contest;
         });
@@ -48,11 +56,12 @@ class ContestService
         $this->audit($user, 'contest.status_changed', $contest, ['status' => $status]);
     }
 
-    public function submitApplication(Contest $contest, array $candidateData, array $documents, string $source = 'public', ?User $user = null): ContestApplication
+    public function submitApplication(Contest $contest, array $candidateData, array $documents, string $source = 'public', ?User $user = null, ?int $trackId = null): ContestApplication
     {
-        if (! $contest->isRegistrationOpen()) throw ValidationException::withMessages(['contest' => 'Les inscriptions à ce concours ne sont pas ouvertes.']);
+        if ($source !== 'import' && ! $contest->isRegistrationOpen()) throw ValidationException::withMessages(['contest' => 'Les inscriptions à ce concours ne sont pas ouvertes.']);
+        if ($trackId && ! $contest->tracks()->whereKey($trackId)->exists()) throw ValidationException::withMessages(['contest_track_id' => 'La filière sélectionnée ne fait pas partie de ce concours.']);
 
-        return DB::transaction(function () use ($contest, $candidateData, $documents, $source, $user): ContestApplication {
+        return DB::transaction(function () use ($contest, $candidateData, $documents, $source, $user, $trackId): ContestApplication {
             $candidate = Candidate::where('email', $candidateData['email'])
                 ->whereDate('birth_date', $candidateData['birth_date'])->first();
             $candidate ??= Candidate::create($candidateData);
@@ -60,10 +69,10 @@ class ContestService
                 throw ValidationException::withMessages(['email' => 'Une candidature existe déjà pour ce candidat et ce concours.']);
             }
             $application = ContestApplication::create([
-                'contest_id' => $contest->id, 'candidate_id' => $candidate->id, 'status' => $source === 'admin' ? 'validated' : 'pending',
+                'contest_id' => $contest->id, 'contest_track_id' => $trackId, 'candidate_id' => $candidate->id, 'status' => in_array($source, ['admin', 'import'], true) ? 'validated' : 'pending',
                 'source' => $source, 'documents' => $documents, 'verification_code' => bin2hex(random_bytes(16)), 'submitted_at' => now(),
             ]);
-            if ($source === 'admin') $this->assignIdentifiers($application);
+            if (in_array($source, ['admin', 'import'], true)) $this->assignIdentifiers($application);
             $this->audit($user, 'application.created', $application, ['source' => $source]);
             return $application->fresh('candidate');
         });
@@ -94,6 +103,46 @@ class ContestService
             $this->recalculateRanks($contest);
             $this->audit($user, 'results.updated', $contest);
         });
+    }
+
+    public function saveScores(Contest $contest, array $scores, User $user): void
+    {
+        if (! in_array($contest->status, ['completed', 'results_preparation', 'results_published'], true)) throw ValidationException::withMessages(['contest' => 'Le concours doit être terminé avant la saisie des notes.']);
+
+        DB::transaction(function () use ($contest, $scores, $user): void {
+            foreach ($scores as $applicationId => $subjectScores) {
+                $application = $contest->applications()->where('status', 'validated')->with('track.subjects')->findOrFail($applicationId);
+                if (! $application->track) continue;
+                foreach ($application->track->subjects as $subject) {
+                    $value = $subjectScores[$subject->id] ?? null;
+                    if ($value === null || $value === '') continue;
+                    if (! is_numeric($value) || (float) $value < 0 || (float) $value > (float) $subject->max_score) {
+                        throw ValidationException::withMessages(["scores.{$applicationId}.{$subject->id}" => "La note de {$subject->name} doit être comprise entre 0 et {$subject->max_score}."]);
+                    }
+                    ContestScore::updateOrCreate(
+                        ['contest_application_id' => $application->id, 'contest_subject_id' => $subject->id],
+                        ['score' => round((float) $value, 2)]
+                    );
+                }
+                $this->calculateApplicationResult($application->fresh(['track.subjects', 'scores']));
+            }
+            $contest->update(['status' => 'results_preparation', 'results_validated_at' => null, 'published_at' => null, 'published_by' => null]);
+            $this->recalculateRanks($contest);
+            $this->audit($user, 'scores.updated', $contest);
+        });
+    }
+
+    public function calculateApplicationResult(ContestApplication $application): ?ContestResult
+    {
+        $subjects = $application->track?->subjects ?? collect();
+        if ($subjects->isEmpty()) return null;
+        $scores = $application->scores->keyBy('contest_subject_id');
+        if ($subjects->contains(fn ($subject) => ! $scores->has($subject->id))) return null;
+        $earned = $subjects->sum(fn ($subject) => (float) $scores[$subject->id]->score);
+        $maximum = $subjects->sum(fn ($subject) => (float) $subject->max_score);
+        if ($maximum <= 0) return null;
+        $average = round(($earned / $maximum) * 20, 2);
+        return ContestResult::updateOrCreate(['contest_application_id' => $application->id], ['average' => $average, 'mention' => $this->mention($average), 'decision' => $this->decision($average)]);
     }
 
     public function validateResults(Contest $contest, User $user): void
@@ -142,12 +191,14 @@ class ContestService
 
     private function recalculateRanks(Contest $contest): void
     {
-        $results = ContestResult::whereHas('application', fn ($q) => $q->where('contest_id', $contest->id))->orderByDesc('average')->orderBy('id')->get();
-        $previous = null; $rank = 0;
-        foreach ($results as $index => $result) {
-            if ($previous === null || (float) $result->average !== $previous) $rank = $index + 1;
-            $result->updateQuietly(['rank' => $rank]);
-            $previous = (float) $result->average;
+        foreach ($contest->applications()->whereHas('result')->select('contest_track_id')->distinct()->pluck('contest_track_id') as $trackId) {
+            $results = ContestResult::whereHas('application', fn ($q) => $q->where('contest_id', $contest->id)->where('contest_track_id', $trackId))->orderByDesc('average')->orderBy('id')->get();
+            $previous = null; $rank = 0;
+            foreach ($results as $index => $result) {
+                if ($previous === null || (float) $result->average !== $previous) $rank = $index + 1;
+                $result->updateQuietly(['rank' => $rank]);
+                $previous = (float) $result->average;
+            }
         }
     }
 

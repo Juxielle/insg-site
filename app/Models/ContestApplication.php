@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ContestApplication extends Model
 {
@@ -12,6 +13,8 @@ class ContestApplication extends Model
     protected function casts(): array { return ['documents' => 'array', 'submitted_at' => 'datetime', 'reviewed_at' => 'datetime']; }
     public function contest(): BelongsTo { return $this->belongsTo(Contest::class); }
     public function candidate(): BelongsTo { return $this->belongsTo(Candidate::class); }
+    public function track(): BelongsTo { return $this->belongsTo(ContestTrack::class, 'contest_track_id'); }
     public function result(): HasOne { return $this->hasOne(ContestResult::class); }
+    public function scores(): HasMany { return $this->hasMany(ContestScore::class); }
     public function reviewer(): BelongsTo { return $this->belongsTo(User::class, 'reviewed_by'); }
 }

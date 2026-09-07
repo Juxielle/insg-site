@@ -52,6 +52,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/{contest}/modifier', [ContestAdminController::class, 'edit'])->name('edit');
         Route::put('/{contest}', [ContestAdminController::class, 'update'])->name('update');
         Route::put('/{contest}/statut', [ContestAdminController::class, 'transition'])->name('transition');
+        Route::post('/{contest}/filieres', [ContestAdminController::class, 'storeTrack'])->name('tracks.store');
+        Route::delete('/{contest}/filieres/{track}', [ContestAdminController::class, 'destroyTrack'])->name('tracks.destroy');
+        Route::post('/{contest}/filieres/{track}/matieres', [ContestAdminController::class, 'storeSubject'])->name('subjects.store');
+        Route::put('/{contest}/matieres/{subject}', [ContestAdminController::class, 'updateSubject'])->name('subjects.update');
         Route::get('/{contest}/candidatures', [ContestAdminController::class, 'applications'])->name('applications');
         Route::get('/{contest}/candidatures/nouvelle', [ContestAdminController::class, 'createApplication'])->name('applications.create');
         Route::post('/{contest}/candidatures', [ContestAdminController::class, 'storeApplication'])->name('applications.store');

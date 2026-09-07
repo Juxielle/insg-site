@@ -17,6 +17,15 @@ class SiteController extends Controller
 {
     public function home(): View
     {
+        $publishedContests = Contest::where('status', 'results_published')
+            ->latest('published_at')
+            ->limit(3)
+            ->get();
+        $now = now();
+        $activePublishedContest = $publishedContests->first(
+            fn (Contest $contest) => $now->between($contest->registration_starts_at, $contest->registration_ends_at)
+        );
+
         return view('home', [
             'page' => $this->page('home'),
             'statistics' => SiteStatistic::orderBy('sort_order')->get(),
@@ -25,7 +34,10 @@ class SiteController extends Controller
             'events' => Event::where('starts_at', '>=', now()->startOfDay())->orderBy('starts_at')->limit(3)->get(),
             'testimonials' => Testimonial::where('featured', true)->get(),
             'partners' => Partner::where('active', true)->orderBy('id')->limit(6)->get(),
-            'publishedContests' => Contest::where('status', 'results_published')->latest('published_at')->limit(3)->get(),
+            'activePublishedContest' => $activePublishedContest,
+            'expiredPublishedContests' => $activePublishedContest
+                ? collect()
+                : $publishedContests->filter(fn (Contest $contest) => $contest->registration_ends_at->isPast()),
         ]);
     }
 

@@ -17,11 +17,12 @@ class ContestPublicController extends Controller
 
     public function index(): View { return view('contests.index', ['contests' => Contest::where('status', 'registration_open')->orderBy('exam_date')->get()]); }
 
-    public function create(Contest $contest): View { abort_unless($contest->isRegistrationOpen(), 404); return view('contests.apply', compact('contest')); }
+    public function create(Contest $contest): View { abort_unless($contest->isRegistrationOpen(), 404); $contest->load('tracks'); return view('contests.apply', compact('contest')); }
 
     public function store(Request $request, Contest $contest): RedirectResponse
     {
         $data = $request->validate([
+            'contest_track_id' => ['required', Rule::exists('contest_tracks', 'id')->where('contest_id', $contest->id)],
             'last_name' => ['required', 'string', 'max:100'], 'first_names' => ['required', 'string', 'max:150'], 'gender' => ['required', Rule::in(['F', 'M'])],
             'birth_date' => ['required', 'date', 'before:today'], 'birth_place' => ['required', 'string', 'max:150'], 'nationality' => ['required', 'string', 'max:100'],
             'phone' => ['required', 'string', 'max:40'], 'email' => ['required', 'email', 'max:255'], 'address' => ['nullable', 'string', 'max:255'], 'city' => ['required', 'string', 'max:100'], 'province' => ['nullable', 'string', 'max:100'],
@@ -29,7 +30,8 @@ class ContestPublicController extends Controller
             'documents' => ['required', 'array', 'max:10'], 'documents.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'], 'consent' => ['accepted'],
         ]);
         $documents = collect($request->file('documents'))->map(fn ($file) => ['name' => $file->getClientOriginalName(), 'path' => $file->store('contests/'.$contest->id)])->all();
-        $application = $this->service->submitApplication($contest, collect($data)->except(['documents', 'consent'])->all(), $documents);
+        $trackId = (int) $data['contest_track_id'];
+        $application = $this->service->submitApplication($contest, collect($data)->except(['documents', 'consent', 'contest_track_id'])->all(), $documents, 'public', null, $trackId);
         return redirect()->route('contests.confirmation', $application->verification_code);
     }
 
@@ -49,7 +51,7 @@ class ContestPublicController extends Controller
             'verification_code' => ['required', 'digits:4', Rule::in([date('Y')])],
         ]);
         $contest = Contest::where('status', 'results_published')->findOrFail($data['contest_id']);
-        $application = $contest->applications()->with(['candidate', 'result'])->whereHas('candidate', fn ($q) => $q->where('registration_number', $data['registration_number']))->first();
+        $application = $contest->applications()->with(['candidate', 'track', 'result'])->whereHas('candidate', fn ($q) => $q->where('registration_number', $data['registration_number']))->first();
         return view('contests.results', ['contests' => Contest::where('status', 'results_published')->latest('published_at')->get(), 'result' => $application]);
     }
 }

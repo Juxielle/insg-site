@@ -27,6 +27,8 @@ class ContestModuleTest extends TestCase
             ->assertRedirect();
         $contest = Contest::where('title', 'Concours test 2027')->firstOrFail();
         $this->assertMatchesRegularExpression('/^CONC-2027-\d{3}$/', $contest->reference);
+        $this->assertCount(3, $contest->tracks);
+        $this->assertCount(4, $contest->tracks->first()->subjects);
         $this->put(route('admin.contests.transition', $contest), ['status' => 'registration_open'])->assertRedirect();
         $this->assertSame('registration_open', $contest->fresh()->status);
     }
@@ -39,12 +41,14 @@ class ContestModuleTest extends TestCase
             ->assertSee($contest->title)
             ->assertSee('Gérer les candidatures')
             ->assertSee('Gérer les résultats');
+        $this->actingAs($this->admin())->get(route('admin.contests.results', $contest))
+            ->assertOk()->assertSee('Notes et résultats')->assertSee('Français');
     }
 
     public function test_public_application_is_pending_then_validation_assigns_identifiers(): void
     {
         $contest = Contest::where('status', 'registration_open')->firstOrFail();
-        $payload = $this->candidatePayload() + ['documents' => [UploadedFile::fake()->create('bac.pdf', 100, 'application/pdf')], 'consent' => '1'];
+        $payload = $this->candidatePayload() + ['contest_track_id' => $contest->tracks()->first()->id, 'documents' => [UploadedFile::fake()->create('bac.pdf', 100, 'application/pdf')], 'consent' => '1'];
         $this->post(route('contests.store', $contest), $payload)->assertRedirect();
         $application = ContestApplication::with('candidate')->latest('id')->firstOrFail();
         $this->assertSame('pending', $application->status);
@@ -63,7 +67,7 @@ class ContestModuleTest extends TestCase
     {
         $contest = Contest::where('status', 'registration_open')->firstOrFail();
         $contest->update(['status' => 'registration_closed']);
-        $this->post(route('contests.store', $contest), $this->candidatePayload() + ['documents' => [UploadedFile::fake()->create('bac.pdf', 10, 'application/pdf')], 'consent' => '1'])
+        $this->post(route('contests.store', $contest), $this->candidatePayload() + ['contest_track_id' => $contest->tracks()->first()->id, 'documents' => [UploadedFile::fake()->create('bac.pdf', 10, 'application/pdf')], 'consent' => '1'])
             ->assertSessionHasErrors('contest');
         $this->assertDatabaseMissing('contest_applications', ['contest_id' => $contest->id]);
     }
@@ -104,10 +108,75 @@ class ContestModuleTest extends TestCase
         $service->validateResults($contest->fresh(), $admin);
     }
 
+    public function test_subject_scores_use_each_maximum_to_calculate_average(): void
+    {
+        $contest = Contest::where('status', 'registration_open')->firstOrFail();
+        $track = $contest->tracks()->with('subjects')->firstOrFail();
+        $track->subjects->first()->update(['max_score' => 30]);
+        $application = app(ContestService::class)->submitApplication($contest, $this->candidatePayload(), [], 'admin', $this->admin(), $track->id);
+        $contest->update(['status' => 'completed']);
+
+        $scores = [];
+        foreach ($track->subjects as $index => $subject) $scores[$subject->id] = $index === 0 ? 24 : 16;
+        app(ContestService::class)->saveScores($contest->fresh(), [$application->id => $scores], $this->admin());
+
+        $this->assertSame(4, $application->scores()->count());
+        $this->assertDatabaseHas('contest_results', [
+            'contest_application_id' => $application->id,
+            'average' => 16,
+            'mention' => 'Très bien',
+            'decision' => 'admitted',
+        ]);
+    }
+
+    public function test_published_contest_seeder_generates_tracks_subject_scores_and_results(): void
+    {
+        $contest = Contest::where('reference', 'CONC-2026-002')->with('tracks.subjects')->firstOrFail();
+        $this->assertCount(3, $contest->tracks);
+        $this->assertTrue($contest->tracks->every(fn ($track) => $track->subjects->count() === 4));
+        $this->assertSame(5, $contest->applications()->count());
+        $this->assertDatabaseCount('contest_scores', 20);
+
+        $application = $contest->applications()->whereHas('candidate', fn ($query) => $query->where('last_name', 'MBA'))->with(['track', 'scores', 'result'])->firstOrFail();
+        $this->assertSame('BTS', $application->track->name);
+        $this->assertCount(4, $application->scores);
+        $this->assertSame('18.50', $application->result->average);
+        $this->assertSame('Excellent', $application->result->mention);
+        $this->assertSame('admitted', $application->result->decision);
+        $this->assertSame(1, $application->result->rank);
+    }
+
     public function test_non_admin_cannot_access_contest_management(): void
     {
         $this->get(route('admin.contests.index'))->assertRedirect(route('login'));
         $this->actingAs(User::factory()->create(['role' => 'student']))->get(route('admin.contests.index'))->assertForbidden();
+    }
+
+    public function test_home_moves_results_button_according_to_contest_validity(): void
+    {
+        $contest = Contest::where('reference', 'CONC-2026-002')->firstOrFail();
+        $contest->update([
+            'registration_starts_at' => now()->subDay(),
+            'registration_ends_at' => now()->addDay(),
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('data-results-placement="hero"', false)
+            ->assertSee('Voir les résultats du concours')
+            ->assertDontSee('data-action="registration"', false)
+            ->assertDontSee('data-results-placement="archive"', false);
+
+        $contest->update([
+            'registration_starts_at' => now()->subDays(2),
+            'registration_ends_at' => now()->subDay(),
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('data-results-placement="hero"', false)
+            ->assertSee('data-action="registration"', false)
+            ->assertSee('data-results-placement="archive"', false);
     }
 
     private function admin(): User { return User::where('role', 'admin')->firstOrFail(); }
