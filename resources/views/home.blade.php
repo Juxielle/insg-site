@@ -53,7 +53,13 @@
                 <li><a class="dropdown-item" href="{{ route('contests.index') }}"><i class="bi bi-trophy me-2"></i>Concours</a></li>
                 <li><a class="dropdown-item" href="pages/vie-etudiante.html"><i class="bi bi-people me-2"></i>Vie Étudiante</a></li>
                 <li><a class="dropdown-item" href="pages/recherche.html"><i class="bi bi-search me-2"></i>Recherche</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Entreprendre</a>
+              <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="pages/incubateur.html"><i class="bi bi-rocket-takeoff me-2"></i>Incubateurs</a></li>
+                <li><a class="dropdown-item" href="pages/entrepreneuriat.html"><i class="bi bi-lightbulb me-2"></i>Entrepreneuriat</a></li>
               </ul>
             </li>
             <li class="nav-item dropdown">
@@ -67,7 +73,6 @@
                 <li><a class="dropdown-item" href="{{ route('pages.entreprises') }}"><i class="bi bi-briefcase me-2"></i>Partenaires</a></li>
               </ul>
             </li>
-            <li class="nav-item"><a class="nav-link" href="pages/contact.html">Contact</a></li>
           </ul>
           @include('partials.login-button')
         </div>
