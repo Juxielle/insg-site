@@ -20,15 +20,15 @@
         <p class="section-lead">La formation initiale constitue la mission centrale de l’INSG en tant qu’établissement public. Elle prépare les étudiants à exercer dans les principaux domaines de la gestion, du commerce, de la finance et du management.</p>
       </div>
     </div>
-    <div class="formation-accordion accordion" id="initialeAccordion">
+    <div class="formation-groups">
       @foreach([
-        ['bts-initial', 'bi-journal-bookmark', 'BTS', '5 parcours', ['Comptabilité et Gestion des Organisations (CGO)', 'Action Commerciale (AC)', 'Commerce International (CI)', 'Négoce et Commerce du Bois', 'Délégué Médical']],
-        ['licence-fondamentale', 'bi-mortarboard', 'Licence fondamentale', '3 parcours', ['Sciences de Gestion (LSG)', 'Finance Comptabilité (FC)', 'Marketing Commerce International (MCI)']],
-        ['licence-professionnelle', 'bi-briefcase', 'Licence professionnelle', '12 parcours', ['Comptabilité Contrôle Audit (CCA)', 'Banque Finance (BF)', 'Assistant Ressources Humaines (ARH)', 'Gestion Touristique et Environnementale (GTE)', 'Gestion des Ressources', 'Management et Communication Commerciale (MCC)', 'Management des Opérations Internationales (MOI)', 'Informatique de Gestion (IG)', 'Gestion Économie Mines et Pétrole (GEMP)', 'Économie et Gestion des Structures Aéroportuaires', 'Management et Entrepreneuriat en Agro-industrie', 'Achat Logistique Transport']],
-        ['master-professionnel', 'bi-award', 'Master professionnel', '5 parcours', ['Finance (FI)', 'Comptabilité Contrôle Audit (CCA)', 'Management des Affaires Internationales (MIA)', 'Management des Stratégies Commerciales (MSC)', 'Informatique et Gestion (IC)']],
-        ['master-recherche', 'bi-search', 'Master recherche', '1 parcours', ['Sciences de Gestion (MRSG)']],
-      ] as $index => [$id, $icon, $title, $count, $courses])
-        <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button {{ $index ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#{{ $id }}" aria-expanded="{{ $index ? 'false' : 'true' }}" aria-controls="{{ $id }}"><span class="formation-accordion-icon"><i class="bi {{ $icon }}"></i></span><span class="flex-grow-1">{{ $title }}</span><span class="formation-count">{{ $count }}</span></button></h3><div id="{{ $id }}" class="accordion-collapse collapse {{ $index ? '' : 'show' }}" data-bs-parent="#initialeAccordion"><div class="accordion-body"><ul class="formation-list mb-0">@foreach($courses as $course)<li><i class="bi bi-check2-circle"></i><span>{{ $course }}</span></li>@endforeach</ul>@if($id === 'master-recherche')<p class="formation-note mb-0">Un parcours consacré à l’approfondissement scientifique, aux méthodes de recherche et à la production de connaissances en sciences de gestion.</p>@endif</div></div></div>
+        ['bts-initial', 'bi-journal-bookmark', 'BTS', '5 filières', ['Comptabilité et Gestion des Organisations (CGO)', 'Action Commerciale (AC)', 'Commerce International (CI)', 'Négoce et Commerce du Bois', 'Délégué Médical']],
+        ['licence-fondamentale', 'bi-mortarboard', 'Licence en science de gestion', '3 filières', ['Sciences de Gestion (LSG)', 'Finance Comptabilité (FC)', 'Marketing Commerce International (MCI)']],
+        ['licence-professionnelle', 'bi-briefcase', 'Licence professionnelle', '12 filières', ['Comptabilité Contrôle Audit (CCA)', 'Banque Finance (BF)', 'Assistant Ressources Humaines (ARH)', 'Gestion Touristique et Environnementale (GTE)', 'Gestion des Ressources', 'Management et Communication Commerciale (MCC)', 'Management des Opérations Internationales (MOI)', 'Informatique de Gestion (IG)', 'Gestion Économie Mines et Pétrole (GEMP)', 'Économie et Gestion des Structures Aéroportuaires', 'Management et Entrepreneuriat en Agro-industrie', 'Achat Logistique Transport']],
+        ['master-professionnel', 'bi-award', 'Master professionnel', '5 filières', ['Finance (FI)', 'Comptabilité Contrôle Audit (CCA)', 'Management des Affaires Internationales (MIA)', 'Management des Stratégies Commerciales (MSC)', 'Informatique et Gestion (IC)']],
+        ['master-recherche', 'bi-search', 'Master recherche', '1 filière', ['Sciences de Gestion (MRSG)']],
+      ] as [$id, $icon, $title, $count, $courses])
+        @include('partials.formation-list-group')
       @endforeach
     </div>
   </div>
@@ -44,13 +44,13 @@
 <section class="section bg-light-gray" id="formation-continue">
   <div class="container">
     <div class="row section-heading"><div class="col-lg-9"><span class="eyebrow">Développement professionnel</span><h2 class="section-title">Formation continue</h2><p class="section-lead">La formation continue s’adresse aux salariés, aux demandeurs d’emploi et à toute personne souhaitant renforcer, actualiser ou réorienter ses compétences. Elle comprend des parcours diplômants et un programme de perfectionnement professionnel dispensé en cours du soir.</p></div></div>
-    <div class="formation-accordion accordion" id="continueAccordion">
+    <div class="formation-groups">
       @foreach([
-        ['bts-continu', 'bi-journal-check', 'BTS', '3 parcours', ['Comptabilité et Gestion des Organisations (CGO)', 'Action Commerciale (AC)', 'Commerce International (CI)']],
-        ['licence-pro-continue', 'bi-briefcase', 'Licence professionnelle', '2 parcours', ['Logistique et Gestion Commerciale (LGM)', 'Gestion Financière et Comptable (GFC)']],
-        ['master-pro-continu', 'bi-award', 'Master professionnel', '6 parcours', ['Finance et Actuariat (FA)', 'Gouvernance et Management Public (GOMAP)', 'Audit et Contrôle de Gestion (ACG)', 'Gestion des Entreprises (GE)', 'Management des Ressources Humaines (MRH)', 'Management Environnemental et Développement Durable (MEDD)']],
-      ] as $index => [$id, $icon, $title, $count, $courses])
-        <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button {{ $index ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#{{ $id }}" aria-expanded="{{ $index ? 'false' : 'true' }}" aria-controls="{{ $id }}"><span class="formation-accordion-icon"><i class="bi {{ $icon }}"></i></span><span class="flex-grow-1">{{ $title }}</span><span class="formation-count">{{ $count }}</span></button></h3><div id="{{ $id }}" class="accordion-collapse collapse {{ $index ? '' : 'show' }}" data-bs-parent="#continueAccordion"><div class="accordion-body"><ul class="formation-list mb-0">@foreach($courses as $course)<li><i class="bi bi-check2-circle"></i><span>{{ $course }}</span></li>@endforeach</ul></div></div></div>
+        ['bts-continu', 'bi-journal-check', 'BTS', '3 filières', ['Comptabilité et Gestion des Organisations (CGO)', 'Action Commerciale (AC)', 'Commerce International (CI)']],
+        ['licence-pro-continue', 'bi-briefcase', 'Licence professionnelle', '2 filières', ['Logistique et Gestion Commerciale (LGM)', 'Gestion Financière et Comptable (GFC)']],
+        ['master-pro-continu', 'bi-award', 'Master professionnel', '6 filières', ['Finance et Actuariat (FA)', 'Gouvernance et Management Public (GOMAP)', 'Audit et Contrôle de Gestion (ACG)', 'Gestion des Entreprises (GE)', 'Management des Ressources Humaines (MRH)', 'Management Environnemental et Développement Durable (MEDD)']],
+      ] as [$id, $icon, $title, $count, $courses])
+        @include('partials.formation-list-group')
       @endforeach
     </div>
   </div>

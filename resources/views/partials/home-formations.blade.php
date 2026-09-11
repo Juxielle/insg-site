@@ -6,16 +6,14 @@
       <p class="section-lead mx-auto">Découvrez une sélection de filières proposées par l’INSG en BTS, Licence et Master.</p>
     </div></div>
 
-    <div class="formation-accordion accordion" id="homeProgramsAccordion">
+    <div class="formation-groups">
       @foreach([
         ['home-bts', 'bi-journal-bookmark', 'BTS', '3 filières', ['Comptabilité et Gestion des Organisations (CGO)', 'Action Commerciale (AC)', 'Commerce International (CI)']],
+        ['home-science-gestion', 'bi-mortarboard', 'Licence en science de gestion', '3 filières', ['Sciences de Gestion (LSG)', 'Finance Comptabilité (FC)', 'Marketing Commerce International (MCI)']],
         ['home-licence', 'bi-mortarboard', 'Licences professionnelles', '4 filières', ['Comptabilité Contrôle Audit (CCA)', 'Banque Finance (BF)', 'Informatique de Gestion (IG)', 'Gestion Économie Mines et Pétrole (GEMP)']],
         ['home-master', 'bi-award', 'Masters', '4 filières', ['Finance (FI)', 'Management des Affaires Internationales (MIA)', 'Management des Stratégies Commerciales (MSC)', 'Master Recherche en Sciences de Gestion (MRSG)']],
-      ] as $index => [$id, $icon, $title, $count, $courses])
-        <div class="accordion-item">
-          <h3 class="accordion-header"><button class="accordion-button {{ $index ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#{{ $id }}" aria-expanded="{{ $index ? 'false' : 'true' }}" aria-controls="{{ $id }}"><span class="formation-accordion-icon"><i class="bi {{ $icon }}"></i></span><span class="flex-grow-1">{{ $title }}</span><span class="formation-count">{{ $count }}</span></button></h3>
-          <div id="{{ $id }}" class="accordion-collapse collapse {{ $index ? '' : 'show' }}" data-bs-parent="#homeProgramsAccordion"><div class="accordion-body"><ul class="formation-list mb-0">@foreach($courses as $course)<li><i class="bi bi-check2-circle"></i><span>{{ $course }}</span></li>@endforeach</ul></div></div>
-        </div>
+      ] as [$id, $icon, $title, $count, $courses])
+        @include('partials.formation-list-group')
       @endforeach
     </div>
 

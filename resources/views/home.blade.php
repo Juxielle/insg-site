@@ -100,7 +100,7 @@
               @if(!($activePublishedContest ?? null))
                 <a href="pages/admissions.html" class="btn btn-insg-outline btn-lg" data-action="registration"><i class="bi bi-pencil-square me-2"></i>S'inscrire</a>
               @else
-                <a href="{{ route('contests.results', ['contest' => $activePublishedContest->id]) }}" class="btn btn-insg-outline btn-lg" data-results-placement="hero"><i class="bi bi-award me-2"></i>Voir les résultats du concours</a>
+                <a href="{{ route('contests.results', ['contest_id' => $activePublishedContest->id]) }}" class="btn btn-insg-outline btn-lg" data-results-placement="hero"><i class="bi bi-award me-2"></i>Voir les résultats du concours</a>
               @endif
             </div>
             <div class="d-flex align-items-center gap-4 mt-5 flex-wrap">
@@ -117,7 +117,7 @@
       <a href="#chiffres-cles" class="hero-scroll-cue" aria-label="Défiler vers le bas"><i class="bi bi-chevron-down"></i></a>
     </section>
     @if(($expiredPublishedContests ?? collect())->isNotEmpty())
-      <section class="contest-results-banner" data-results-placement="archive"><div class="container"><div class="contest-results-panel"><div><span class="eyebrow"><i class="bi bi-award"></i> Publication officielle</span><h2>Résultats des concours disponibles</h2><p>Consultez de manière confidentielle les résultats publiés par l’INSG Gabon.</p></div><div class="d-flex flex-wrap gap-2">@foreach($expiredPublishedContests as $publishedContest)<a class="btn btn-insg-primary" href="{{ route('contests.results', ['contest' => $publishedContest->id]) }}">{{ $publishedContest->title }}<i class="bi bi-arrow-right ms-2"></i></a>@endforeach</div></div></div></section>
+      <section class="contest-results-banner" data-results-placement="archive"><div class="container"><div class="contest-results-panel"><div><span class="eyebrow"><i class="bi bi-award"></i> Publication officielle</span><h2>Résultats des concours disponibles</h2><p>Consultez les résultats des deux tours publiés par l’INSG Gabon.</p></div><div class="d-flex flex-wrap gap-2">@foreach($expiredPublishedContests as $publishedContest)<a class="btn btn-insg-primary" href="{{ route('contests.results', ['contest_id' => $publishedContest->id]) }}">{{ $publishedContest->title }}<i class="bi bi-arrow-right ms-2"></i></a>@endforeach</div></div></div></section>
     @endif
     @include('partials.page-sections')
 

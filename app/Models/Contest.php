@@ -15,6 +15,8 @@ class Contest extends Model
     }
 
     public function applications(): HasMany { return $this->hasMany(ContestApplication::class); }
+    public function entries(): HasMany { return $this->hasMany(ContestEntry::class); }
+    public function rounds(): HasMany { return $this->hasMany(ContestRound::class)->orderBy("number"); }
     public function tracks(): HasMany { return $this->hasMany(ContestTrack::class)->orderBy('sort_order'); }
     public function isRegistrationOpen(): bool { return $this->status === 'registration_open' && now()->between($this->registration_starts_at, $this->registration_ends_at); }
     public function resultsArePublic(): bool { return $this->status === 'results_published' && $this->published_at !== null; }

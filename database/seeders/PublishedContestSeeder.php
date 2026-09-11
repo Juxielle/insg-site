@@ -2,13 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Candidate;
 use App\Models\Contest;
-use App\Models\ContestApplication;
-use App\Models\ContestResult;
-use App\Models\ContestScore;
 use App\Models\User;
-use App\Services\ContestService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -38,15 +33,6 @@ class PublishedContestSeeder extends Seeder
                 'closed_at' => '2026-05-15 18:00:00',
             ]);
 
-            $tracks = collect();
-            foreach (['BTS', 'Licence fondamentale', 'Licence professionnelle'] as $trackIndex => $trackName) {
-                $track = $contest->tracks()->firstOrCreate(['name' => $trackName], ['sort_order' => $trackIndex + 1]);
-                foreach (['Français', 'Mathématiques', 'Anglais', 'Oral'] as $subjectIndex => $subjectName) {
-                    $track->subjects()->firstOrCreate(['name' => $subjectName], ['max_score' => 20, 'sort_order' => $subjectIndex + 1]);
-                }
-                $tracks->put($trackName, $track->load('subjects'));
-            }
-
             $candidates = [
                 ['0001', 'OBIANG', 'Grâce Mireille', 'F', '2005-02-14', 'Libreville', 'grace.obiang@example.test', 'Licence fondamentale', [16, 15, 14, 18]],
                 ['0002', 'MBA', 'Jean-Paul', 'M', '2004-11-03', 'Oyem', 'jean.mba@example.test', 'BTS', [19, 18, 17, 20]],
@@ -55,42 +41,12 @@ class PublishedContestSeeder extends Seeder
                 ['0005', 'MBOUMBA', 'Sarah', 'F', '2005-04-08', 'Lambaréné', 'sarah.mboumba@example.test', 'Licence fondamentale', [17, 16, 15, 16]],
             ];
 
-            $service = app(ContestService::class);
+            foreach ([1, 2] as $number) $contest->rounds()->updateOrCreate(['number' => $number], ['published_at' => $number === 1 ? $contest->published_at : null]);
             foreach ($candidates as $index => [$number, $lastName, $firstNames, $gender, $birthDate, $birthPlace, $email, $trackName, $scores]) {
-                $track = $tracks[$trackName];
-                $candidate = Candidate::firstOrNew(['email' => $email]);
-                $candidate->fill([
-                    'registration_number' => 'INSG-2026-'.$number,
-                    'last_name' => $lastName, 'first_names' => $firstNames, 'gender' => $gender,
-                    'birth_date' => $birthDate, 'birth_place' => $birthPlace, 'nationality' => 'Gabonaise',
-                    'phone' => '+241 06 00 0'.$number, 'address' => 'Libreville', 'city' => 'Libreville', 'province' => 'Estuaire',
-                    'study_level' => 'Terminale', 'previous_school' => 'Lycée national', 'diploma' => 'Baccalauréat',
-                    'graduation_year' => 2026, 'field' => 'Série B', 'specialty' => 'Économie',
-                ])->save();
-                $application = ContestApplication::updateOrCreate(
-                    ['contest_id' => $contest->id, 'candidate_id' => $candidate->id],
-                    ['contest_track_id' => $track->id, 'candidate_number' => 'CONC-2026-002-'.sprintf('%04d', $index + 1), 'status' => 'validated', 'source' => 'public',
-                     'verification_code' => substr(hash('sha256', 'insg-demo-'.$number), 0, 32), 'submitted_at' => '2026-04-10 10:00:00',
-                     'reviewed_at' => '2026-05-20 09:00:00', 'reviewed_by' => $admin?->id]
-                );
-                foreach ($track->subjects as $subjectIndex => $subject) {
-                    ContestScore::updateOrCreate(
-                        ['contest_application_id' => $application->id, 'contest_subject_id' => $subject->id],
-                        ['score' => $scores[$subjectIndex]]
-                    );
-                }
-                $service->calculateApplicationResult($application->fresh(['track.subjects', 'scores']));
-            }
-
-            foreach ($tracks as $track) {
-                $results = ContestResult::whereHas('application', fn ($query) => $query->where('contest_id', $contest->id)->where('contest_track_id', $track->id))
-                    ->orderByDesc('average')->orderBy('id')->get();
-                $previous = null; $rank = 0;
-                foreach ($results as $index => $result) {
-                    if ($previous === null || (float) $result->average !== $previous) $rank = $index + 1;
-                    $result->update(['rank' => $rank]);
-                    $previous = (float) $result->average;
-                }
+                $average = array_sum($scores) / count($scores);
+                $contest->entries()->updateOrCreate(['round' => 1, 'last_name' => $lastName, 'first_names' => $firstNames], [
+                    'birth_date' => $birthDate, 'registration_number' => 'INSG-2026-'.$number, 'field' => $trackName, 'average' => $average, 'decision' => $average >= 10 ? 'Admis(e)' : 'Ajourné(e)', 'rank' => [3, 1, 4, 5, 2][$index],
+                ]);
             }
         });
     }

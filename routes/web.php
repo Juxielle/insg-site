@@ -7,6 +7,7 @@ use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\SubmissionAdminController;
 use App\Http\Controllers\ContestAdminController;
+use App\Http\Controllers\ContestEntryController;
 use App\Http\Controllers\ContestPublicController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,9 +15,6 @@ Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::get('/assistant/poser-une-question', [ChatbotController::class, 'answer'])->middleware('throttle:30,1')->name('chatbot.answer');
 Route::get('/index.html', [SiteController::class, 'home']);
 Route::get('/concours', [ContestPublicController::class, 'index'])->name('contests.index');
-Route::get('/concours/{contest}/inscription', [ContestPublicController::class, 'create'])->name('contests.apply');
-Route::post('/concours/{contest}/inscription', [ContestPublicController::class, 'store'])->middleware('throttle:10,1')->name('contests.store');
-Route::get('/concours/confirmation/{code}', [ContestPublicController::class, 'confirmation'])->name('contests.confirmation');
 Route::get('/concours/resultats', [ContestPublicController::class, 'results'])->name('contests.results');
 Route::post('/concours/resultats/recherche', [ContestPublicController::class, 'search'])->middleware('throttle:20,1')->name('contests.results.search');
 
@@ -51,27 +49,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/{contest}', [ContestAdminController::class, 'show'])->name('show');
         Route::get('/{contest}/modifier', [ContestAdminController::class, 'edit'])->name('edit');
         Route::put('/{contest}', [ContestAdminController::class, 'update'])->name('update');
-        Route::put('/{contest}/statut', [ContestAdminController::class, 'transition'])->name('transition');
-        Route::post('/{contest}/filieres', [ContestAdminController::class, 'storeTrack'])->name('tracks.store');
-        Route::delete('/{contest}/filieres/{track}', [ContestAdminController::class, 'destroyTrack'])->name('tracks.destroy');
-        Route::post('/{contest}/filieres/{track}/matieres', [ContestAdminController::class, 'storeSubject'])->name('subjects.store');
-        Route::put('/{contest}/matieres/{subject}', [ContestAdminController::class, 'updateSubject'])->name('subjects.update');
-        Route::get('/{contest}/candidatures', [ContestAdminController::class, 'applications'])->name('applications');
-        Route::get('/{contest}/candidatures/nouvelle', [ContestAdminController::class, 'createApplication'])->name('applications.create');
-        Route::post('/{contest}/candidatures', [ContestAdminController::class, 'storeApplication'])->name('applications.store');
-        Route::get('/candidatures/{application}', [ContestAdminController::class, 'application'])->name('application');
-        Route::put('/candidatures/{application}', [ContestAdminController::class, 'review'])->name('review');
-        Route::get('/candidatures/{application}/documents/{document}', [ContestAdminController::class, 'downloadDocument'])->name('documents.download');
-        Route::get('/candidatures/{application}/convocation', [ContestAdminController::class, 'convocation'])->name('convocation');
         Route::get('/{contest}/resultats', [ContestAdminController::class, 'results'])->name('results');
         Route::put('/{contest}/resultats', [ContestAdminController::class, 'saveResults'])->name('results.save');
-        Route::post('/{contest}/resultats/valider', [ContestAdminController::class, 'validateResults'])->name('results.validate');
         Route::post('/{contest}/publier', [ContestAdminController::class, 'publish'])->name('publish');
         Route::post('/{contest}/depublier', [ContestAdminController::class, 'unpublish'])->name('unpublish');
         Route::get('/{contest}/export.csv', [ContestAdminController::class, 'export'])->name('export');
-        Route::get('/{contest}/liste-officielle', [ContestAdminController::class, 'officialList'])->name('official-list');
-        Route::post('/{contest}/import/apercu', [ContestAdminController::class, 'importPreview'])->name('import.preview');
-        Route::post('/{contest}/import/confirmer', [ContestAdminController::class, 'importConfirm'])->name('import.confirm');
+        Route::prefix('/{contest}/tours/{round}')->where(['round' => '[12]'])->group(function () {
+            Route::get('/etudiants/nouveau', [ContestEntryController::class, 'create'])->name('entries.create');
+            Route::post('/etudiants', [ContestEntryController::class, 'store'])->name('entries.store');
+            Route::get('/etudiants/{entry}/modifier', [ContestEntryController::class, 'edit'])->name('entries.edit');
+            Route::put('/etudiants/{entry}', [ContestEntryController::class, 'update'])->name('entries.update');
+            Route::delete('/etudiants/{entry}', [ContestEntryController::class, 'destroy'])->name('entries.destroy');
+            Route::delete('/etudiants', [ContestEntryController::class, 'clear'])->name('entries.clear');
+            Route::post('/import-excel', [ContestEntryController::class, 'import'])->name('entries.import');
+            Route::get('/resultats.pdf', [ContestEntryController::class, 'pdf'])->name('pdf');
+        });
     });
     Route::prefix('administration/site')->name('admin.content.')->group(function () {
         Route::get('/', [ContentAdminController::class, 'dashboard'])->name('dashboard');
