@@ -68,7 +68,7 @@ class SiteController extends Controller
 
     public function staticPage(string $page): View
     {
-        $allowed = ['about', 'admissions', 'bibliotheque', 'contact', 'incubateur', 'entrepreneuriat', 'inscription-master', 'recherche'];
+        $allowed = ['about', 'admissions', 'bibliotheque', 'contact', 'incubateur', 'entrepreneuriat', 'inscription-master', 'recherche', 'international'];
         abort_unless(in_array($page, $allowed, true), 404);
 
         return view('pages.cms-page', [

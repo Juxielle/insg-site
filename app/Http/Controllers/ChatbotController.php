@@ -36,6 +36,10 @@ class ChatbotController extends Controller
                 'La bibliothèque de l’INSG propose des ressources académiques et documentaires pour accompagner les étudiants et les enseignants.',
                 $this->links(['Bibliothèque' => route('pages.bibliotheque')]),
             ],
+            Str::contains($question, ['international', 'etranger', 'cooperation', 'mobilite']) => [
+                'L’INSG Gabon est ouvert sur l’Afrique et le monde grâce à ses accords de coopération et accueille des étudiants internationaux. Consultez notre espace International.',
+                $this->links(['International & Coopération' => route('pages.international')]),
+            ],
             default => [
                 'Je peux vous renseigner sur les formations, les admissions, les concours, les actualités, la bibliothèque, la connexion et les contacts de l’INSG. Que souhaitez-vous savoir ?',
                 $this->links(['Voir les formations' => route('pages.formations'), 'Admissions' => route('pages.admissions'), 'Contact' => route('pages.contact')]),

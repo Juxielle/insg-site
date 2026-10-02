@@ -21,6 +21,7 @@ Route::post('/concours/resultats/recherche', [ContestPublicController::class, 's
 $pages = [
     'about', 'admissions', 'bibliotheque', 'contact',
     'incubateur', 'entrepreneuriat', 'inscription-master', 'recherche',
+    'international',
 ];
 
 foreach ($pages as $page) {
